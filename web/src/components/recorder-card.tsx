@@ -69,14 +69,19 @@ export function RecorderCard() {
   };
 
   useEffect(() => {
+    // React Strict Mode runs an extra setup/cleanup cycle in development.
+    // Reset the flag in setup so async microphone permission requests are not
+    // mistaken for responses received after the component was unmounted.
+    isMountedRef.current = true;
+
     return () => {
       isMountedRef.current = false;
       if (timerRef.current !== null) clearInterval(timerRef.current);
       const recorder = mediaRecorderRef.current;
 
-    if (recorder && recorder.state !== "inactive") {
-      recorder.stop();
-    }
+      if (recorder && recorder.state !== "inactive") {
+        recorder.stop();
+      }
       streamRef.current?.getTracks().forEach((track) => track.stop());
       if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
     };
