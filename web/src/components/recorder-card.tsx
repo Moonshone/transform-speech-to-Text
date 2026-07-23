@@ -171,7 +171,9 @@ export function RecorderCard() {
   const handleStop = (): void => {
     stopTimer();
     const recorder = mediaRecorderRef.current;
-    if (recorder?.state !== "inactive") recorder.stop();
+    if (recorder && recorder.state !== "inactive") {
+      recorder.stop();
+    }
     stopStream();
     setStatus("stopped");
   };
@@ -179,7 +181,9 @@ export function RecorderCard() {
   const handleReset = (): void => {
     stopTimer();
     const recorder = mediaRecorderRef.current;
-    if (recorder?.state !== "inactive") recorder.stop();
+    if (recorder && recorder.state !== "inactive") {
+      recorder.stop();
+    }
     if (recorder) recorder.onstop = null;
     mediaRecorderRef.current = null;
     stopStream();
