@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(22, 133, 209, 0.09), transparent 32rem),
+    #f7f9fc;
+  color: #172033;
+}
+
+button:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(22, 133, 209, 0.28);
+  outline-offset: 3px;
+}
