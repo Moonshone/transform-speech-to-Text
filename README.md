@@ -46,14 +46,9 @@ pytest
 
 ## Web-App konfigurieren
 
-Die Next.js-App unter `web/` sendet Aufnahmen serverseitig an die OpenAI-
-Transkriptions-API. Dafür muss `OPENAI_API_KEY` in der lokalen Umgebung bzw.
-in den Environment Variables des Vercel-Projekts hinterlegt sein. Der Schlüssel
-wird vor der Verwendung von versehentlich mitkopierten Leerzeichen bereinigt.
-
-Optional kann das Modell über `OPENAI_TRANSCRIPTION_MODEL` geändert werden;
-standardmäßig wird `gpt-4o-mini-transcribe` verwendet. Nach Änderungen an
-Vercel-Variablen muss die betroffene Deployment-Umgebung neu deployed werden.
+Die Next.js-App unter `web/` nutzt die kostenlose Web Speech API des Browsers
+für eine Live-Transkription auf Deutsch. Es wird kein API-Key benötigt. Die
+Browserunterstützung ist eingeschränkt; empfohlen werden Chrome oder Edge.
 
 ## Projektstruktur
 

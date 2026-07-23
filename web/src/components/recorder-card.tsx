@@ -48,11 +48,12 @@ function microphoneErrorMessage(error: unknown): string {
 }
 
 interface RecorderCardProps {
-  onRecordingReady: (recording: Blob) => Promise<void>;
+  onRecordingStart: () => void;
+  onRecordingStop: () => void;
   onReset: () => void;
 }
 
-export function RecorderCard({ onRecordingReady, onReset }: RecorderCardProps) {
+export function RecorderCard({ onRecordingStart, onRecordingStop, onReset }: RecorderCardProps) {
   const [status, setStatus] = useState<RecorderStatus>("idle");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [chunkCount, setChunkCount] = useState(0);
@@ -160,7 +161,6 @@ export function RecorderCard({ onRecordingReady, onReset }: RecorderCardProps) {
         revokeAudioUrl();
         audioUrlRef.current = url;
         setAudioUrl(url);
-        void onRecordingReady(recording);
       };
 
       recorder.onerror = (): void => {
@@ -171,6 +171,7 @@ export function RecorderCard({ onRecordingReady, onReset }: RecorderCardProps) {
 
       mediaRecorderRef.current = recorder;
       recorder.start(1000);
+      onRecordingStart();
       setStatus("recording");
       setIsStarting(false);
 
@@ -189,6 +190,7 @@ export function RecorderCard({ onRecordingReady, onReset }: RecorderCardProps) {
   };
 
   const handleStop = (): void => {
+    onRecordingStop();
     stopTimer();
     const recorder = mediaRecorderRef.current;
     if (recorder && recorder.state !== "inactive") {
@@ -199,6 +201,7 @@ export function RecorderCard({ onRecordingReady, onReset }: RecorderCardProps) {
   };
 
   const handleReset = (): void => {
+    onRecordingStop();
     stopTimer();
     const recorder = mediaRecorderRef.current;
     if (recorder && recorder.state !== "inactive") {

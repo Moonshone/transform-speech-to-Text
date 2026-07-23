@@ -49,7 +49,7 @@ export function TranscriptCard({ text, isTranscribing, error, onClear }: Transcr
       {isTranscribing && <p className="mb-4 rounded-xl bg-accent-50 px-4 py-3 text-sm font-medium text-accent-700" role="status">Transkription läuft …</p>}
       {error && <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p>}
       <label htmlFor="transcript" className="sr-only">Erkannter Text</label>
-      <textarea id="transcript" readOnly value={text} placeholder="Dein gesprochener Text erscheint nach dem Stoppen hier." className="min-h-52 flex-1 resize-none rounded-2xl border border-slate-200 bg-slate-50 p-5 text-base leading-7 text-ink placeholder:text-slate-400" />
+      <textarea id="transcript" readOnly value={text} placeholder="Dein gesprochener Text erscheint während der Aufnahme hier." className="min-h-52 flex-1 resize-none rounded-2xl border border-slate-200 bg-slate-50 p-5 text-base leading-7 text-ink placeholder:text-slate-400" />
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
         <ActionButton label="Kopieren" icon={<CopyIcon className="h-4 w-4" />} onClick={handleCopy} disabled={!text} />
         <ActionButton label="Löschen" icon={<TrashIcon className="h-4 w-4" />} onClick={onClear} disabled={!text && !error} />
