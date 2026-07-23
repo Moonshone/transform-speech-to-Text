@@ -8,7 +8,7 @@ export default function Home() {
       <Header />
       <SpeechToTextApp />
       <div className="mt-6"><StatusBar /></div>
-      <p className="mt-8 text-center text-xs text-slate-400">Die Aufnahme wird nach dem Stoppen sicher zur Transkription übertragen.</p>
+      <p className="mt-8 text-center text-xs text-slate-400">Die kostenlose Browser-Spracherkennung wird nicht von allen Browsern unterstützt. Empfohlen: Chrome oder Edge.</p>
     </main>
   );
 }
