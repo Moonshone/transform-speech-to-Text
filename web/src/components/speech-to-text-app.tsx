@@ -6,6 +6,15 @@ import { BrowserTranscriber, type TranscriberStatus } from "../lib/browser-trans
 import { AudioUploadCard } from "./audio-upload-card";
 import { RecorderCard } from "./recorder-card";
 import { TranscriptCard } from "./transcript-card";
+import {
+  languageFromLocale,
+  languageLabels,
+  speechRecognitionLocales,
+  type DetectedLanguage,
+  type SupportedLanguage,
+} from "../types/languages";
+
+export type { SupportedLanguage } from "../types/languages";
 
 const recognitionErrors: Partial<Record<SpeechRecognitionErrorCode, string>> = {
   "no-speech": "Es wurde keine Sprache erkannt. Bitte sprich deutlich in das Mikrofon.",
@@ -13,6 +22,7 @@ const recognitionErrors: Partial<Record<SpeechRecognitionErrorCode, string>> = {
   network: "Die Spracherkennung konnte den Netzwerkdienst nicht erreichen.",
   "not-allowed": "Der Mikrofonzugriff für die Spracherkennung wurde abgelehnt.",
   "service-not-allowed": "Der Browser hat den Spracherkennungsdienst nicht zugelassen.",
+  "language-not-supported": "Die gewählte Sprache wird von der Live-Spracherkennung dieses Browsers nicht unterstützt.",
 };
 
 function appendTranscript(current: string, addition: string): string {
@@ -23,6 +33,8 @@ function appendTranscript(current: string, addition: string): string {
 
 export function SpeechToTextApp() {
   const [finalText, setFinalText] = useState("");
+  const [language, setLanguage] = useState<SupportedLanguage>("auto");
+  const [detectedLanguage, setDetectedLanguage] = useState<DetectedLanguage>(null);
   const [interimText, setInterimText] = useState("");
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,12 +79,15 @@ export function SpeechToTextApp() {
 
     recognitionRef.current?.abort();
     const recognition = new Recognition();
-    recognition.lang = "de-DE";
+    const browserLanguage = languageFromLocale(navigator.language);
+    const effectiveLanguage = language === "auto" ? (browserLanguage ?? "de") : language;
+    recognition.lang = speechRecognitionLocales[effectiveLanguage];
     recognition.continuous = true;
     recognition.interimResults = true;
     shouldRecognizeRef.current = true;
     restartCountRef.current = 0;
     recognitionRef.current = recognition;
+    setIsRecognizing(true);
 
     recognition.onstart = () => setIsRecognizing(true);
     recognition.onresult = (event) => {
@@ -84,11 +99,17 @@ export function SpeechToTextApp() {
         if (event.results[index].isFinal) newFinal += transcript;
         else newInterim += transcript;
       }
-      if (newFinal.trim()) setFinalText((current) => appendTranscript(current, newFinal));
+      if (newFinal.trim()) {
+        setFinalText((current) => appendTranscript(current, newFinal));
+        setDetectedLanguage(effectiveLanguage);
+      }
       setInterimText(newInterim.trim());
     };
     recognition.onerror = (event) => {
-      setError(recognitionErrors[event.error] ?? `Die Spracherkennung ist fehlgeschlagen (${event.error}).`);
+      const automaticNoResult = language === "auto" && event.error === "no-speech";
+      setError(automaticNoResult
+        ? "Die automatische Spracherkennung hat kein Ergebnis geliefert. Bitte wähle möglichst eine Sprache aus."
+        : recognitionErrors[event.error] ?? `Die Spracherkennung ist fehlgeschlagen (${event.error}).`);
       if (["not-allowed", "service-not-allowed", "audio-capture"].includes(event.error)) {
         shouldRecognizeRef.current = false;
       }
@@ -117,6 +138,7 @@ export function SpeechToTextApp() {
       recognition.start();
     } catch {
       shouldRecognizeRef.current = false;
+      setIsRecognizing(false);
       setError("Die Spracherkennung konnte nicht gestartet werden.");
     }
   };
@@ -139,8 +161,10 @@ export function SpeechToTextApp() {
     setUploadStatus("Audio wird vorbereitet …");
     setIsUploadBusy(true);
     try {
-      const text = await transcriberRef.current!.transcribe(file);
-      setFinalText(text);
+      const result = await transcriberRef.current!.transcribe(file, language);
+      if (!result.text) throw new Error(language === "auto" ? "Die automatische Spracherkennung hat kein Ergebnis geliefert." : "In der Audiodatei wurde keine Sprache erkannt.");
+      setFinalText(result.text);
+      setDetectedLanguage(result.language);
       setInterimText("");
       setSource("Upload");
       setUploadStatus("Transkription abgeschlossen");
@@ -161,19 +185,36 @@ export function SpeechToTextApp() {
     setInterimText("");
     setError(null);
     setSource(null);
+    setDetectedLanguage(null);
+    setUploadStatus("");
+    setUploadProgress(null);
   };
 
   const displayedText = appendTranscript(finalText, interimText);
 
   return (
     <div className="mt-10">
+      <div className="mb-5 max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <label htmlFor="recording-language" className="block text-sm font-bold text-ink">Sprache der Aufnahme</label>
+        <select
+          id="recording-language"
+          value={language}
+          disabled={isRecognizing || isUploadBusy}
+          onChange={(event) => setLanguage(event.target.value as SupportedLanguage)}
+          className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-ink disabled:cursor-not-allowed disabled:bg-slate-100"
+        >
+          {(Object.entries(languageLabels) as [SupportedLanguage, string][]).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+      </div>
       <div className="mb-5 inline-flex rounded-xl bg-slate-200/70 p-1" role="tablist" aria-label="Eingabequelle">
         <button type="button" role="tab" aria-selected={tab === "microphone"} disabled={isUploadBusy} onClick={() => setTab("microphone")} className={`rounded-lg px-5 py-2.5 text-sm font-semibold ${tab === "microphone" ? "bg-white text-accent-700 shadow-sm" : "text-slate-600"}`}>Mikrofon</button>
         <button type="button" role="tab" aria-selected={tab === "upload"} disabled={isRecognizing} onClick={() => setTab("upload")} className={`rounded-lg px-5 py-2.5 text-sm font-semibold ${tab === "upload" ? "bg-white text-accent-700 shadow-sm" : "text-slate-600"}`}>Audiodatei hochladen</button>
       </div>
       <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        {tab === "microphone" ? <RecorderCard onRecordingStart={startRecognition} onRecordingStop={stopRecognition} onReset={clearTranscription} /> : <AudioUploadCard busy={isUploadBusy} status={uploadStatus} progress={uploadProgress} error={error} onTranscribe={transcribeUpload} onError={setError} />}
-        <TranscriptCard text={displayedText} source={source} status={isUploadBusy ? uploadStatus : undefined} isTranscribing={isRecognizing || isUploadBusy} error={tab === "microphone" ? error : null} onClear={() => { setFinalText(""); setInterimText(""); setError(null); setSource(null); }} />
+        {tab === "microphone"
+          ? <RecorderCard language={language} onRecordingStart={startRecognition} onRecordingStop={stopRecognition} onReset={clearTranscription} />
+          : <AudioUploadCard language={language} busy={isUploadBusy} status={uploadStatus} progress={uploadProgress} error={error} onTranscribe={transcribeUpload} onError={setError} onReset={clearTranscription} />}
+        <TranscriptCard language={language} detectedLanguage={detectedLanguage} text={displayedText} source={source} status={isUploadBusy ? uploadStatus : undefined} isTranscribing={isRecognizing || isUploadBusy} error={tab === "microphone" ? error : null} onClear={clearTranscription} />
       </div>
     </div>
   );

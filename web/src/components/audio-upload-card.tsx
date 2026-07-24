@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import type { SupportedLanguage } from "../types/languages";
 
 const MAX_SIZE = 50 * 1024 * 1024;
 const extensions = [".mp3", ".wav", ".m4a", ".mp4", ".webm", ".ogg", ".flac"];
@@ -16,15 +17,17 @@ function validate(file: File): string | null {
 }
 
 interface AudioUploadCardProps {
+  language: SupportedLanguage;
   busy: boolean;
   status: string;
   progress: number | null;
   error: string | null;
   onTranscribe: (file: File) => Promise<void>;
   onError: (message: string | null) => void;
+  onReset: () => void;
 }
 
-export function AudioUploadCard({ busy, status, progress, error, onTranscribe, onError }: AudioUploadCardProps) {
+export function AudioUploadCard({ language, busy, status, progress, error, onTranscribe, onError, onReset }: AudioUploadCardProps) {
   const [file, setFile] = useState<File | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -43,7 +46,7 @@ export function AudioUploadCard({ busy, status, progress, error, onTranscribe, o
 
   const remove = (): void => {
     if (audioUrl) URL.revokeObjectURL(audioUrl);
-    setAudioUrl(null); setFile(null); onError(null);
+    setAudioUrl(null); setFile(null); onReset();
     if (inputRef.current) inputRef.current.value = "";
   };
 
@@ -56,6 +59,7 @@ export function AudioUploadCard({ busy, status, progress, error, onTranscribe, o
     <section aria-labelledby="upload-heading" className="flex min-h-[430px] flex-col rounded-3xl border border-slate-200/80 bg-white p-6 shadow-card sm:p-8">
       <h2 id="upload-heading" className="text-2xl font-bold tracking-tight text-ink">Audiodatei hochladen</h2>
       <p className="mt-2 text-sm leading-6 text-slate-500">MP3, WAV, M4A, MP4, WEBM, OGG oder FLAC, maximal 50 MB</p>
+      <p className="mt-2 text-sm leading-6 text-slate-500">{language === "auto" ? "Bei Automatisch erkennen bestimmt Whisper die gesprochene Sprache." : "Whisper transkribiert in der ausgewählten Originalsprache."}</p>
       <div onDragOver={(event) => event.preventDefault()} onDrop={drop} className="mt-5 flex min-h-32 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-accent-200 bg-accent-50/50 p-5 text-center">
         <p className="font-medium text-slate-700">Datei hierher ziehen oder auswählen</p>
         <input ref={inputRef} className="sr-only" type="file" accept={`${mimeTypes.join(",")},${extensions.join(",")}`} onChange={(event: ChangeEvent<HTMLInputElement>) => selectFile(event.target.files?.[0])} />
