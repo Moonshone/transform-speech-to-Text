@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { CopyIcon, DownloadIcon, TrashIcon } from "./icons";
+import { detectedLanguageLabels, type DetectedLanguage, type SupportedLanguage } from "../types/languages";
 
 interface ActionButtonProps {
   label: string;
@@ -15,6 +16,8 @@ function ActionButton({ label, icon, onClick, disabled = false }: ActionButtonPr
 }
 
 interface TranscriptCardProps {
+  language: SupportedLanguage;
+  detectedLanguage: DetectedLanguage;
   text: string;
   isTranscribing: boolean;
   source: "Mikrofon" | "Upload" | null;
@@ -23,8 +26,9 @@ interface TranscriptCardProps {
   onClear: () => void;
 }
 
-export function TranscriptCard({ text, isTranscribing, source, status, error, onClear }: TranscriptCardProps) {
+export function TranscriptCard({ language, detectedLanguage, text, isTranscribing, source, status, error, onClear }: TranscriptCardProps) {
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const isPersian = detectedLanguage === "fa" || (detectedLanguage === null && language === "fa");
 
   const handleCopy = (): void => {
     void navigator.clipboard.writeText(text);
@@ -50,8 +54,9 @@ export function TranscriptCard({ text, isTranscribing, source, status, error, on
       </div>
       {isTranscribing && <p className="mb-4 rounded-xl bg-accent-50 px-4 py-3 text-sm font-medium text-accent-700" role="status">{status ?? "Transkription läuft …"}</p>}
       {error && <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p>}
+      <p className="mb-3 text-sm font-medium text-slate-600">Erkannte Sprache: {detectedLanguage ? detectedLanguageLabels[detectedLanguage] : "Unbekannt"}</p>
       <label htmlFor="transcript" className="sr-only">Erkannter Text</label>
-      <textarea id="transcript" readOnly value={text} placeholder="Dein gesprochener Text erscheint während der Aufnahme hier." className="min-h-52 flex-1 resize-none rounded-2xl border border-slate-200 bg-slate-50 p-5 text-base leading-7 text-ink placeholder:text-slate-400" />
+      <textarea id="transcript" dir={isPersian ? "rtl" : "ltr"} readOnly value={text} placeholder="Dein gesprochener Text erscheint während der Aufnahme hier." className={`min-h-52 flex-1 resize-none rounded-2xl border border-slate-200 bg-slate-50 p-5 text-base leading-7 text-ink placeholder:text-slate-400 ${isPersian ? "text-right" : "text-left"}`} />
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
         <ActionButton label="Kopieren" icon={<CopyIcon className="h-4 w-4" />} onClick={handleCopy} disabled={!text} />
         <ActionButton label="Löschen" icon={<TrashIcon className="h-4 w-4" />} onClick={onClear} disabled={!text && !error} />

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { MicrophoneIcon } from "./icons";
+import type { SupportedLanguage } from "../types/languages";
 
 type RecorderStatus = "idle" | "recording" | "stopped";
 
@@ -48,12 +49,13 @@ function microphoneErrorMessage(error: unknown): string {
 }
 
 interface RecorderCardProps {
+  language: SupportedLanguage;
   onRecordingStart: () => void;
   onRecordingStop: () => void;
   onReset: () => void;
 }
 
-export function RecorderCard({ onRecordingStart, onRecordingStop, onReset }: RecorderCardProps) {
+export function RecorderCard({ language, onRecordingStart, onRecordingStop, onReset }: RecorderCardProps) {
   const [status, setStatus] = useState<RecorderStatus>("idle");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [chunkCount, setChunkCount] = useState(0);
@@ -239,6 +241,8 @@ export function RecorderCard({ onRecordingStart, onRecordingStop, onReset }: Rec
         {statusLabels[status]}
       </div>
       <p className="mt-3 text-sm text-slate-500">Audioabschnitte: <span className="font-semibold text-ink">{chunkCount}</span></p>
+      <p className="mt-3 max-w-md text-sm text-slate-500">Für die Live-Erkennung ist die manuelle Sprachauswahl zuverlässiger.</p>
+      {language === "auto" && <p className="mt-2 max-w-md rounded-xl bg-amber-50 px-4 py-2 text-sm text-amber-800">Für die Live-Erkennung bitte möglichst eine Sprache auswählen. Automatisch wird eine unterstützte Browsersprache verwendet, sonst Deutsch.</p>}
       {errorMessage && <p className="mt-4 max-w-md rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{errorMessage}</p>}
       {audioUrl && (
         <audio className="mt-5 w-full max-w-md" controls src={audioUrl}>

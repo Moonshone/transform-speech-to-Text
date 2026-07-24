@@ -1,8 +1,10 @@
+import type { DetectedLanguage, SupportedLanguage } from "../types/languages";
+
 export type TranscriberStatus =
   | { type: "loading"; progress?: number }
   | { type: "ready"; backend: "webgpu" | "wasm" }
   | { type: "transcribing"; progress?: number }
-  | { type: "result"; text: string }
+  | { type: "result"; text: string; language: DetectedLanguage }
   | { type: "error"; message: string };
 
 type WorkerResponse = TranscriberStatus & { id?: number };
@@ -16,19 +18,19 @@ export class BrowserTranscriber {
 
   constructor(private readonly onStatus: (status: TranscriberStatus) => void) {}
 
-  async transcribe(file: File): Promise<string> {
+  async transcribe(file: File, language: SupportedLanguage): Promise<{ text: string; language: DetectedLanguage }> {
     if (this.activeReject) throw new Error("Es läuft bereits eine Transkription.");
     const audio = await prepareAudio(file);
     const worker = this.getWorker();
     const id = ++this.requestId;
 
-    return new Promise<string>((resolve, reject) => {
+    return new Promise<{ text: string; language: DetectedLanguage }>((resolve, reject) => {
       this.activeReject = reject;
       const finish = (): void => { this.activeReject = null; };
       worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
         if (data.id !== undefined && data.id !== id) return;
         this.onStatus(data);
-        if (data.type === "result") { finish(); resolve(data.text); }
+        if (data.type === "result") { finish(); resolve({ text: data.text, language: data.language }); }
         if (data.type === "error") { finish(); reject(new Error(data.message)); }
       };
       worker.onerror = () => {
@@ -37,7 +39,7 @@ export class BrowserTranscriber {
         finish();
         reject(error);
       };
-      worker.postMessage({ type: "transcribe", id, audio }, [audio.buffer]);
+      worker.postMessage({ type: "transcribe", id, audio, language }, [audio.buffer]);
     });
   }
 
